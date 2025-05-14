@@ -9,7 +9,8 @@ import base64
 from langchain_community.document_loaders import PyPDFLoader, DirectoryLoader
 from langchain_text_splitters import CharacterTextSplitter
 from langchain_openai import AzureOpenAIEmbeddings
-from langchain_community.vectorstores import Chroma
+# from langchain_community.vectorstores import Chroma
+from langchain_community.vectorstores import FAISS
 
 AZURE_ENDPOINT = "https://khoot-ma1d16zs-eastus2.cognitiveservices.azure.com/"
 AZURE_MODEL = "gpt-4o"
@@ -122,16 +123,16 @@ def pdf_to_RAG_conversion(user_question):
         model="text-embedding-ada-002",  # Model name  
     )  
 
-    vectorstore = Chroma.from_documents(documents=docs, embedding=embeddings, persist_directory=None)  # Ensures it's in-memory only)
+    vectorstore = FAISS.from_documents(documents=docs, embedding=embeddings)  # Ensures it's in-memory only)
     retriever = vectorstore.as_retriever(search_kwargs={"k": 30})
     relevant_docs = retriever.invoke(user_question)
     content = "\n\n".join([f"{doc.page_content}\n(Page {doc.metadata.get('page', 'N/A')}, \
             {os.path.basename(doc.metadata.get('source', 'unknown'))})" for doc in relevant_docs]) 
     content += f"\n\n Question: {user_question}"
 
-    #Delete the in-memory database
-    vectorstore._client.delete_collection(vectorstore._collection.name)
-    print(f"Content : {content}")
+    #Delete the ChromaDB in-memory database
+    # vectorstore._client.delete_collection(vectorstore._collection.name)
+    # print(f"Content : {content}")
     return content
 
 #Get legal answer using RAG
