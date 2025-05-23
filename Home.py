@@ -12,37 +12,66 @@ from langchain_openai import AzureOpenAIEmbeddings
 # from langchain_community.vectorstores import Chroma
 from langchain_community.vectorstores import FAISS
 
+# from fpdf import FPDF
+import unicodedata
+
 AZURE_ENDPOINT = "https://khoot-ma1d16zs-eastus2.cognitiveservices.azure.com/"
 AZURE_MODEL = "gpt-4o"
 AZURE_API_KEY = "8UNdcHUQNEE5uC768eY16kfQVclMMQMuGEM3aECivQvNbDJIKIcaJQQJ99BDACHYHv6XJ3w3AAAAACOGIenh"
 AZURE_DEPLOYMENT_ID = "2024-12-01-preview"
 
-COMPARATIVE_LEGAL_ANALYSIS_PROMPT = """ You are provided with two legal documents. Please perform a comprehensive analysis that includes the following: 
-                        Compare the two documents in terms of their content, legal arguments, and conclusions. 
-                        Highlight any notable similarities or differences in the reasoning, 
-                        structural organization, and the case authorities cited. 
-                        Explain the rationale behind the decisions in each case. What legal 
-                        foundations, principles, or precedents were relied upon to reach the outcomes? 
-                        Summarize five key facts that are central to the case(s), such as the parties 
-                        involved, significant events, legal issues raised, and any material facts that 
-                        influenced the judgment. Analyze the judicial reasoning used to reach the 
-                        final decision(s). Describe how the judge(s) interpreted and applied the 
-                        law to the facts, and outline the logical progression of their analysis. 
-                        Identify and explain the case authorities cited in the documents. 
-                        Detail how these authorities were used to support or justify the legal reasoning."""
+COMPARATIVE_LEGAL_ANALYSIS_PROMPT = """ You are provided with two legal documents. Please perform a comprehensive 
+                            analysis that includes the following: 
+                            Compare the two documents in terms of their content, legal arguments, and conclusions. 
+                            Highlight any notable similarities or differences in the reasoning, structural organization, 
+                            and the case authorities cited, with each observation supported by a footnote pointing 
+                            to its location in the original text in this exact format [Paragraph X, Filename : XXX]. 
+                            Explain the rationale behind the decisions in each case, including the legal foundations, 
+                            principles, or precedents relied upon—each accompanied by a corresponding footnote. 
+                            Summarize five key facts central to the case(s)—such as the parties involved, significant 
+                            events, legal issues raised, and any material facts that influenced the judgment—again, 
+                            with footnotes referencing their source in the document. 
+                            Analyze the judicial reasoning used to reach the final decision(s), and provide footnoted 
+                            references showing how the judge(s) interpreted and applied the law to the facts. 
+                            Outline the logical progression of the analysis, ensuring each step is supported by a 
+                            clearly numbered footnote. 
+                            When identifying and explaining case authorities cited or precedents, include footnotes that provide 
+                            both the full case name and its citation number or reference [e.g., Smith v Jones [1990] HKCA 45, Filename XXX].
+                            Clearly indicate where each authority appears in the document, and how it was used to support or 
+                            justify the legal reasoning."""
 
-CASE_SUMMARIZATION_PROMPT = """  Please summarize this document in terms of their content, legal arguments, and conclusions. 
-                        Highlight any notable similarities or differences in the reasoning, 
-                        structural organization, and the case authorities cited. 
-                        Explain the rationale behind the decisions in each case. What legal 
-                        foundations, principles, or precedents were relied upon to reach the outcomes? 
-                        Summarize five key facts that are central to the case(s), such as the parties 
-                        involved, significant events, legal issues raised, and any material facts that 
-                        influenced the judgment. Analyze the judicial reasoning used to reach the 
-                        final decision(s). Describe how the judge(s) interpreted and applied the 
-                        law to the facts, and outline the logical progression of their analysis. 
-                        Identify and explain the case authorities cited in the documents. 
-                        Detail how these authorities were used to support or justify the legal reasoning."""
+
+# CASE_SUMMARIZATION_PROMPT = """  Please summarize this document in terms of their content, legal arguments, and conclusions. 
+#                         Highlight any notable similarities or differences in the reasoning, 
+#                         structural organization, and the case authorities cited. 
+#                         Explain the rationale behind the decisions in each case. What legal 
+#                         foundations, principles, or precedents were relied upon to reach the outcomes? 
+#                         Summarize five key facts that are central to the case(s), such as the parties 
+#                         involved, significant events, legal issues raised, and any material facts that 
+#                         influenced the judgment. Analyze the judicial reasoning used to reach the 
+#                         final decision(s). Describe how the judge(s) interpreted and applied the 
+#                         law to the facts, and outline the logical progression of their analysis. 
+#                         Identify and explain the case authorities cited in the documents. 
+#                         Detail how these authorities were used to support or justify the legal reasoning."""
+
+CASE_SUMMARIZATION_PROMPT = """Please summarize this document in terms of its content, legal arguments, and 
+                            conclusions, and provide footnote references for every extracted point in this exact format [Paragraph X]. 
+                            Highlight any notable similarities or differences in the reasoning, structural organization, 
+                            and the case authorities cited, with each observation supported by a footnote pointing 
+                            to its location in the original text in this exact format [Paragraph X]. 
+                            Explain the rationale behind the decisions in each case, including the legal foundations, 
+                            principles, or precedents relied upon—each accompanied by a corresponding footnote. 
+                            Summarize five key facts central to the case(s)—such as the parties involved, significant 
+                            events, legal issues raised, and any material facts that influenced the judgment—again, 
+                            with footnotes referencing their source in the document. 
+                            Analyze the judicial reasoning used to reach the final decision(s), and provide footnoted 
+                            references showing how the judge(s) interpreted and applied the law to the facts. 
+                            Outline the logical progression of the analysis, ensuring each step is supported by a 
+                            clearly numbered footnote. 
+                            When identifying and explaining case authorities cited or precedents, include footnotes that provide 
+                            both the full case name and its citation number or reference [e.g., Smith v Jones [1990] HKCA 45].
+                            Clearly indicate where each authority appears in the document, and how it was used to support or 
+                            justify the legal reasoning."""
 
 # --- App Config ---
 st.set_page_config(page_title="Legal Q&A Chatbot", page_icon="⚖️", layout="centered")
@@ -123,14 +152,14 @@ def pdf_to_RAG_conversion(user_question):
         model="text-embedding-ada-002",  # Model name  
     )  
 
-    vectorstore = FAISS.from_documents(documents=docs, embedding=embeddings)  # Ensures it's in-memory only)
+    vectorstore = FAISS.from_documents(documents=docs, embedding=embeddings)  # Ensures it's in-memory only
     retriever = vectorstore.as_retriever(search_kwargs={"k": 30})
     relevant_docs = retriever.invoke(user_question)
     content = "\n\n".join([f"{doc.page_content}\n(Page {doc.metadata.get('page', 'N/A')}, \
             {os.path.basename(doc.metadata.get('source', 'unknown'))})" for doc in relevant_docs]) 
     content += f"\n\n Question: {user_question}"
 
-    #Delete the ChromaDB in-memory database
+    #Delete the in-memory database
     # vectorstore._client.delete_collection(vectorstore._collection.name)
     # print(f"Content : {content}")
     return content
@@ -148,10 +177,10 @@ def get_legal_answer_using_RAG(question):
                 "role": "system",
                 "content": (
                     "You are a helpful and honest legal assistant. " \
-                    "Answer the user's question strictly based on all documents content. " \
-                    "If you know the page and filename where the answer derived from, please include a citation in this " \
-                    "exact format : \n\nCitations : \n\n- Page X, filename\n\n" \
-                    "Only include the page number and the filename — no directory paths. "
+                    "Answer the user's question strictly based on all documents content. " 
+                    # "If you know the page and filename where the answer derived from, please include a citation in this " \
+                    # "exact format : \n\nCitations : \n\n- Page X, filename\n\n" \
+                    # "Only include the page number and the filename — no directory paths. "
                     # "If you know the answer, respond with the answer first, followed by a citation in this exact format:\n\n"
                     # "\"(Page X, filename.pdf)\"\n\n"
                     # "Only include the page number and the filename — no directory paths. "
@@ -192,6 +221,35 @@ def get_legal_answer(question):
     )
     return response.choices[0].message.content         
 
+def sanitize_text(text):
+    return text.replace('—', '--')  # replace em dash with double dash
+    # You can expand this to handle other problematic characters
+
+def normalize_text(text):
+    return unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii')
+
+comparative_legal_analysis = st.sidebar.button("📚 Comparative Legal Analysis")
+case_summarization = st.sidebar.button("🧾 Case Summarization ")
+element_entries = st.sidebar.button("🧩 Element entries ")
+springboard_injunction = st.sidebar.button("🚫 Springboard Injunction ")
+
+check_legally_binding_contract = st.sidebar.checkbox("Legally Binding Contract Checker")
+# Display only the last 3 messages
+for chat in st.session_state.chat_history[-3:]:
+    with st.chat_message("user"):
+        st.markdown(chat["user"])
+    with st.chat_message("assistant"):
+        st.markdown(chat["assistant"])# Input with dynamic placeholder
+
+uploaded_files = st.sidebar.file_uploader("Choose an image/pdf...",  type=["pdf"], accept_multiple_files=True)
+user_question = st.chat_input(key="Enter your legal question:",
+                placeholder=st.session_state.placeholder
+            )
+
+# Spacer to push the button visually near the bottom
+# st.markdown("<div style='height:30px'></div>", unsafe_allow_html=True)
+
+# Simulated footer button (just appears under chat)
 
 # Apply custom CSS for beautiful sidebar buttons
 st.markdown("""
@@ -222,22 +280,30 @@ st.markdown("""
         }
     </style>
 """, unsafe_allow_html=True)
-comparative_legal_analysis = st.sidebar.button("📚 Comparative Legal Analysis")
-case_summarization = st.sidebar.button("🧾             Case Summarization        ")
-element_entries = st.sidebar.button("🧩              Element entries             ")
 
-# Display only the last 3 messages
-for chat in st.session_state.chat_history[-3:]:
-    with st.chat_message("user"):
-        st.markdown(chat["user"])
-    with st.chat_message("assistant"):
-        st.markdown(chat["assistant"])# Input with dynamic placeholder
+if st.sidebar.button("Generate Markdown File"):
+    st.success("Markdown File export triggered!")  # Replace with your actual logic
+    
+    # Open a new Markdown file for writing
+    with open("chat_response.md", "w", encoding="utf-8") as md_file:
+        for chat in st.session_state.chat_history[-1:]:
+            # Format user message
+            md_file.write("## **User:**\n")
+            md_file.write(f"{normalize_text(chat['user'])}\n\n")
 
-uploaded_files = st.sidebar.file_uploader("Choose an image/pdf...",  type=["pdf"], accept_multiple_files=True)
-user_question = st.chat_input(key="Enter your legal question:",
-                placeholder=st.session_state.placeholder
-            )
+            # Format assistant reply
+            md_file.write("## **Assistant:**\n")
+            md_file.write(f"{normalize_text(chat['assistant'])}\n\n")
+    # pdf = FPDF()
+    # pdf.add_page()
+    # pdf.set_font("Arial", size=11)
 
+    # # Handle line breaks
+    # for line in st.session_state.chat_history[-1:]:
+    #     pdf.multi_cell(0, 10, normalize_text(chat["user"]))
+    #     pdf.multi_cell(0, 10, normalize_text(chat["assistant"]))
+    # # Save PDF
+    # pdf.output("chat_response.pdf")
 
 answer = ""
 # --- Display Answer ---
@@ -251,15 +317,40 @@ if user_question:
         else:
             st.error("❌ Please specify one legal case document to compare") 
     else:
-        with st.spinner("Thinking..."):
-            answer = get_legal_answer(user_question)
+        if check_legally_binding_contract:
+            with st.spinner("Thinking..."):
+                scenario  = """Based on the scenario provided, analyze whether 
+                a legally binding contract exists. Your analysis should be structured 
+                around the following key elements of contract formation:
+                1. Offer
+                2. Acceptance
+                3. Consideration
+                4. Intention to Create Legal Relations
+                5. Capacity to Contract:
+                6. Certainty and Clarity of Terms:
+                7. Legality of Purpose
+                After analyzing each element, conclude whether a legally binding contract has been formed. 
+                # Clearly explain your reasoning with reference to the facts in the scenario. """
+                # At a dinner party, Jane casually tells her friend Mike, "I might sell you my laptop for HK$2,000 
+                # if I get a new one next week." Mike responds, "Sure, I’ll take it!" 
+                # A week later, Jane decides not to sell.
+                print(f"scenario : {scenario}")
+                print(f"user_question : {user_question}")
+                if scenario is not None and user_question is not None:
+                    answer = get_legal_answer(scenario + user_question)
+                else:
+                    st.error("Please provide both a scenario and a question.")
+                
+        else:
+            with st.spinner("Thinking..."):
+                answer = get_legal_answer(user_question)
 elif comparative_legal_analysis:
     if (len(uploaded_files) == 2):
         # files_to_images_conversion()
         with st.spinner("Thinking..."):
-            user_question = COMPARATIVE_LEGAL_ANALYSIS_PROMPT
+            user_question = "Please compare these two documents."
             files_upload()
-            content = pdf_to_RAG_conversion(user_question)
+            content = pdf_to_RAG_conversion(COMPARATIVE_LEGAL_ANALYSIS_PROMPT)
             answer = get_legal_answer_using_RAG(content) 
     else: 
         st.error("❌ Please specify two legal case documents to compare")
@@ -269,9 +360,9 @@ elif case_summarization:
         print(f"Case summarization : {len(uploaded_files)} file")
         # files_to_images_conversion()
         with st.spinner("Thinking..."):
-            user_question = CASE_SUMMARIZATION_PROMPT
+            user_question = "Please summarize this legal document."
             files_upload()
-            content = pdf_to_RAG_conversion(user_question)
+            content = pdf_to_RAG_conversion(CASE_SUMMARIZATION_PROMPT)
             answer = get_legal_answer_using_RAG(content)
             update_placeholder("Please specify your question. E.g. What is a power of attorney?")
     else:
@@ -279,6 +370,8 @@ elif case_summarization:
         
 elif element_entries:
     st.switch_page("pages/element_entries.py")
+elif springboard_injunction:
+    st.switch_page("pages/Springboard_Injunction.py")   
 else:
     pass
 # Save chat to history
