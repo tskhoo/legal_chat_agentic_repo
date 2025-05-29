@@ -247,7 +247,7 @@ for chat in st.session_state.chat_history[-3:]:
         st.markdown(chat["assistant"])# Input with dynamic placeholder
 
 uploaded_files = st.sidebar.file_uploader("選擇一張圖片/ PDF...",  type=["pdf"], accept_multiple_files=True)
-user_question = st.chat_input(key="Enter your legal question:",
+user_question = st.chat_input(key="請輸入你的法律問題:",
                 placeholder=st.session_state.placeholder
             )
 
