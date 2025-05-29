@@ -92,7 +92,7 @@ if "chat_history" not in st.session_state:
 if "user_question1" not in st.session_state:
     st.session_state.user_question1 = ""
 if "placeholder" not in st.session_state:
-    st.session_state.placeholder = "Please specify your question. E.g. What is a power of attorney?"
+    st.session_state.placeholder = "請指定你的問題。例如：什麼是授權書？"
 
 # Upload file(s) to saved files directory
 def files_upload():
