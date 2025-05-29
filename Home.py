@@ -5,14 +5,15 @@ import os
 import shutil
 import fitz 
 import base64
-
+  
 from langchain_community.document_loaders import PyPDFLoader, DirectoryLoader
 from langchain_text_splitters import CharacterTextSplitter
 from langchain_openai import AzureOpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 # from langchain_community.vectorstores import Chroma
 from langchain_community.vectorstores import FAISS
 
-# from fpdf import FPDF
+from fpdf import FPDF
 import unicodedata
 
 AZURE_ENDPOINT = "https://khoot-ma1d16zs-eastus2.cognitiveservices.azure.com/"
@@ -151,6 +152,7 @@ def pdf_to_RAG_conversion(user_question):
         azure_endpoint=AZURE_ENDPOINT,
         model="text-embedding-ada-002",  # Model name  
     )  
+    embeddings = OpenAIEmbeddings(api_key="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")
 
     vectorstore = FAISS.from_documents(documents=docs, embedding=embeddings)  # Ensures it's in-memory only
     retriever = vectorstore.as_retriever(search_kwargs={"k": 30})
@@ -171,6 +173,7 @@ def get_legal_answer_using_RAG(question):
         azure_endpoint=AZURE_ENDPOINT,
         api_key=AZURE_API_KEY
     )
+    # response = OpenAI(api_key="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")
     response = response.chat.completions.create(
     messages=[
             {
@@ -208,6 +211,8 @@ def get_legal_answer(question):
         azure_endpoint=AZURE_ENDPOINT,
         api_key=AZURE_API_KEY
     )
+
+    # response = OpenAI(api_key="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")
     response = response.chat.completions.create(
     messages=[
             {"role": "system", "content": "You are a helpful legal assistant who explains legal topics in plain, simple language."},
@@ -231,7 +236,7 @@ def normalize_text(text):
 comparative_legal_analysis = st.sidebar.button("📚 Comparative Legal Analysis")
 case_summarization = st.sidebar.button("🧾 Case Summarization ")
 element_entries = st.sidebar.button("🧩 Element entries ")
-springboard_injunction = st.sidebar.button("🚫 Springboard Injunction ")
+springboard_injunction = st.sidebar.button("🚫 春天的禁令 ")
 
 check_legally_binding_contract = st.sidebar.checkbox("Legally Binding Contract Checker")
 # Display only the last 3 messages
@@ -368,10 +373,10 @@ elif case_summarization:
     else:
         st.error("❌ Please specify only 1 case document")
         
-elif element_entries:
-    st.switch_page("pages/element_entries.py")
+# elif element_entries:
+#     st.switch_page("pages/element_entries.py")
 elif springboard_injunction:
-    st.switch_page("pages/Springboard_Injunction.py")   
+    st.switch_page("pages/春天的禁令.py")   
 else:
     pass
 # Save chat to history
