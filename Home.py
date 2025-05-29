@@ -238,7 +238,7 @@ case_summarization = st.sidebar.button("🧾 案件摘要 ")
 #element_entries = st.sidebar.button("🧩 Element entries ")
 springboard_injunction = st.sidebar.button("🚫 禁令 ")
 
-check_legally_binding_contract = st.sidebar.checkbox("Legally Binding Contract Checker")
+check_legally_binding_contract = st.sidebar.checkbox("法律約束力合約檢查器")
 # Display only the last 3 messages
 for chat in st.session_state.chat_history[-3:]:
     with st.chat_message("user"):
