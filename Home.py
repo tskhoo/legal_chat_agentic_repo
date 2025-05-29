@@ -376,7 +376,7 @@ elif case_summarization:
 # elif element_entries:
 #     st.switch_page("pages/element_entries.py")
 elif springboard_injunction:
-    st.switch_page("pages/春天的禁令.py")   
+    st.switch_page("pages/禁令.py")   
 else:
     pass
 # Save chat to history
