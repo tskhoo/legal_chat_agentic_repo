@@ -13,7 +13,7 @@ from langchain_openai import OpenAIEmbeddings
 # from langchain_community.vectorstores import Chroma
 from langchain_community.vectorstores import FAISS
 
-from fpdf import FPDF
+#from fpdf import FPDF
 import unicodedata
 
 AZURE_ENDPOINT = "https://khoot-ma1d16zs-eastus2.cognitiveservices.azure.com/"
