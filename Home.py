@@ -236,7 +236,7 @@ def normalize_text(text):
 comparative_legal_analysis = st.sidebar.button("📚 Comparative Legal Analysis")
 case_summarization = st.sidebar.button("🧾 Case Summarization ")
 element_entries = st.sidebar.button("🧩 Element entries ")
-springboard_injunction = st.sidebar.button("🚫 春天的禁令 ")
+springboard_injunction = st.sidebar.button("🚫 禁令 ")
 
 check_legally_binding_contract = st.sidebar.checkbox("Legally Binding Contract Checker")
 # Display only the last 3 messages
